@@ -14,7 +14,6 @@ import (
 	"github.com/consensys/gnark-crypto/ecc/bn254/fp"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -243,6 +242,15 @@ func ReadPrivateKeyFromFile(path string, password string) (*KeyPair, error) {
 		return nil, err
 	}
 
+	// Check if pubkey is present, if not return error
+	// There is an issue where if you specify ecdsa key file
+	// it still works and returns a keypair since the format of storage is same.
+	// This is to prevent and make sure pubkey is present.
+	// ecdsa keys doesn't have that field
+	if encryptedBLSStruct.PubKey == "" {
+		return nil, fmt.Errorf("invalid bls key file. pubkey field not found")
+	}
+
 	skBytes, err := keystore.DecryptDataV3(encryptedBLSStruct.Crypto, password)
 	if err != nil {
 		return nil, err
@@ -260,25 +268,16 @@ func (k *KeyPair) SignMessage(message [32]byte) *Signature {
 	return &Signature{&G1Point{sig}}
 }
 
+// This signs a message on G1, and so will require a G2Pubkey to verify
+func (k *KeyPair) SignHashedToCurveMessage(g1HashedMsg *bn254.G1Affine) *Signature {
+	sig := new(bn254.G1Affine).ScalarMultiplication(g1HashedMsg, k.PrivKey.BigInt(new(big.Int)))
+	return &Signature{&G1Point{sig}}
+}
+
 func (k *KeyPair) GetPubKeyG2() *G2Point {
 	return &G2Point{bn254utils.MulByGeneratorG2(k.PrivKey)}
 }
 
 func (k *KeyPair) GetPubKeyG1() *G1Point {
 	return k.PubKey
-}
-
-// MakePubkeyRegistrationData returns the data that should be sent to the pubkey compendium smart contract to register
-// the public key. The values returned constitute a proof that the operator knows the secret key corresponding to the
-// public key, and prevents the operator
-// from attacking the signature protocol by registering a public key that is derived from other public keys.
-// (e.g., see https://medium.com/@coolcottontail/rogue-key-attack-in-bls-signature-and-harmony-security-eac1ea2370ee)
-func (k *KeyPair) MakePubkeyRegistrationData(
-	operatorAddress common.Address,
-	blsPubkeyCompendiumAddress common.Address,
-	chainId *big.Int,
-) *G1Point {
-	return &G1Point{
-		bn254utils.MakePubkeyRegistrationData(k.PrivKey, operatorAddress, blsPubkeyCompendiumAddress, chainId),
-	}
 }

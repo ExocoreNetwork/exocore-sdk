@@ -12,6 +12,7 @@ import (
 	"github.com/ExocoreNetwork/exocore-sdk/logging"
 	"github.com/ExocoreNetwork/exocore-sdk/services/avsregistry"
 	"github.com/ExocoreNetwork/exocore-sdk/types"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 )
 
 var (
@@ -104,7 +105,7 @@ type BlsAggregationService interface {
 //     the time at which operators will send their signatures. It is mostly suitable for offchain computation
 //     oracle (a la truebit) type of AVS, where tasks are sent onchain by users sporadically, and where
 //     new tasks can start even before the previous ones have finished aggregation.
-//     AVSs  that have a much more controlled task submission schedule and where new tasks are
+//     AVSs have a much more controlled task submission schedule and where new tasks are
 //     only submitted after the previous one's response has been aggregated and responded onchain, could have
 //     a much simpler AggregationService without all the complicated parallel goroutines.
 type BlsAggregatorService struct {
@@ -272,7 +273,7 @@ func (a *BlsAggregatorService) singleTaskAggregatorGoroutineFunc(
 						nonSignersOperatorIds = append(nonSignersOperatorIds, operatorId)
 					}
 				}
-				indices, err := a.avsRegistryService.GetCheckSignaturesIndices(context.Background(), taskCreatedBlock, quorumNumbers, nonSignersOperatorIds)
+				indices, err := a.avsRegistryService.GetCheckSignaturesIndices(&bind.CallOpts{}, taskCreatedBlock, quorumNumbers, nonSignersOperatorIds)
 				if err != nil {
 					a.logger.Error("Failed to get check signatures indices", "err", err)
 					a.aggregatedResponsesC <- BlsAggregationServiceResponse{

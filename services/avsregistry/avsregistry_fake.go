@@ -5,9 +5,10 @@ import (
 	"errors"
 	"math/big"
 
-	blsoperatorstateretrievar "github.com/ExocoreNetwork/exocore-sdk/contracts/bindings/BLSOperatorStateRetriever"
+	opstateretriever "github.com/ExocoreNetwork/exocore-sdk/contracts/bindings/OperatorStateRetriever"
 	"github.com/ExocoreNetwork/exocore-sdk/crypto/bls"
 	"github.com/ExocoreNetwork/exocore-sdk/types"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 )
 
 type FakeAvsRegistryService struct {
@@ -67,6 +68,9 @@ func (f *FakeAvsRegistryService) GetQuorumsAvsStateAtBlock(ctx context.Context, 
 	return quorumsAvsState, nil
 }
 
-func (f *FakeAvsRegistryService) GetCheckSignaturesIndices(ctx context.Context, referenceBlockNumber types.BlockNum, quorumNumbers []types.QuorumNum, nonSignerOperatorIds []types.OperatorId) (blsoperatorstateretrievar.BLSOperatorStateRetrieverCheckSignaturesIndices, error) {
-	return blsoperatorstateretrievar.BLSOperatorStateRetrieverCheckSignaturesIndices{}, nil
+func (f *FakeAvsRegistryService) GetCheckSignaturesIndices(
+	opts *bind.CallOpts, referenceBlockNumber types.BlockNum,
+	quorumNumbers []types.QuorumNum, nonSignerOperatorIds []types.OperatorId,
+) (opstateretriever.OperatorStateRetrieverCheckSignaturesIndices, error) {
+	return opstateretriever.OperatorStateRetrieverCheckSignaturesIndices{}, nil
 }

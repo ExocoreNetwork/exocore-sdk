@@ -6,9 +6,9 @@ package bls
 type OperatorId = [32]byte
 type OperatorIndex uint
 
-// Security and Quorum Paramaters
+// Security and Quorum Parameters
 
-// QuorumID is a unique identifier for a quorum; initially exo wil support upt to 256 quorums
+// QuorumID is a unique identifier for a quorum; initially Avs will support up to 256 quorums
 type QuorumID uint8
 
 // SecurityParam contains the quorum ID and the adversary threshold for the quorum;

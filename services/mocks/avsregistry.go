@@ -12,8 +12,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	contractBLSOperatorStateRetriever "github.com/ExocoreNetwork/exocore-sdk/contracts/bindings/BLSOperatorStateRetriever"
+	contractOperatorStateRetriever "github.com/ExocoreNetwork/exocore-sdk/contracts/bindings/OperatorStateRetriever"
 	types "github.com/ExocoreNetwork/exocore-sdk/types"
+	bind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,10 +42,10 @@ func (m *MockAvsRegistryService) EXPECT() *MockAvsRegistryServiceMockRecorder {
 }
 
 // GetCheckSignaturesIndices mocks base method.
-func (m *MockAvsRegistryService) GetCheckSignaturesIndices(arg0 context.Context, arg1 uint32, arg2 []byte, arg3 [][32]byte) (contractBLSOperatorStateRetriever.BLSOperatorStateRetrieverCheckSignaturesIndices, error) {
+func (m *MockAvsRegistryService) GetCheckSignaturesIndices(arg0 *bind.CallOpts, arg1 uint32, arg2 []byte, arg3 [][32]byte) (contractOperatorStateRetriever.OperatorStateRetrieverCheckSignaturesIndices, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCheckSignaturesIndices", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(contractBLSOperatorStateRetriever.BLSOperatorStateRetrieverCheckSignaturesIndices)
+	ret0, _ := ret[0].(contractOperatorStateRetriever.OperatorStateRetrieverCheckSignaturesIndices)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
