@@ -32,11 +32,3 @@ func ConvertToBN254G2Point(input *bls.G2Point) regcoord.BN254G2Point {
 	}
 	return output
 }
-
-func PaddingClientChainAddress(input []byte, outputLength int) []byte {
-	if len(input) < outputLength {
-		padding := make([]byte, outputLength-len(input))
-		return append(input, padding...)
-	}
-	return input
-}

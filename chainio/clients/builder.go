@@ -1,9 +1,8 @@
 package main
 
 import (
-	"github.com/ExocoreNetwork/exocore-sdk/chainio/clients/avsregistry"
 	"github.com/ExocoreNetwork/exocore-sdk/chainio/clients/eth"
-	"github.com/ExocoreNetwork/exocore-sdk/chainio/clients/exoprecompile"
+	"github.com/ExocoreNetwork/exocore-sdk/chainio/clients/exocontracts"
 	"github.com/ExocoreNetwork/exocore-sdk/chainio/txmgr"
 	chainioutils "github.com/ExocoreNetwork/exocore-sdk/chainio/utils"
 	"github.com/ExocoreNetwork/exocore-sdk/logging"
@@ -14,19 +13,14 @@ import (
 type BuildAllConfig struct {
 	EthHttpUrl                 string
 	EthWsUrl                   string
-	depositAddr                string
 	avsAddr                    string
-	avsTaskAddr                string
-	blsAddr                    string
 	RegistryCoordinatorAddr    string
 	OperatorStateRetrieverAddr string
 	AvsName                    string
 }
 
 type Clients struct {
-	AvsRegistryChainReader     *avsregistry.AvsRegistryChainReader
-	AvsRegistryChainSubscriber *avsregistry.AvsRegistryChainSubscriber
-	AvsRegistryChainWriter     *avsregistry.AvsRegistryChainWriter
+	AvsRegistryChainSubscriber *exocontracts.AvsRegistryChainSubscriber
 	EXOChainReader             *exocontracts.EXOChainReader
 	EXOChainWriter             *exocontracts.EXOChainWriter
 	EthHttpClient              *eth.Client
@@ -56,7 +50,7 @@ func BuildAll(
 
 	txMgr := txmgr.NewSimpleTxManager(ethHttpClient, logger, signerFn, signerAddr)
 	// creating Exo clients: Reader, Writer and Subscriber
-	exoChainReader, exoChainWriter, err := config.buildExoClients(
+	exoChainReader, exoChainWriter, avsRegistrySubscriber, err := config.buildExoClients(
 		ethHttpClient,
 		txMgr,
 		logger,
@@ -66,25 +60,10 @@ func BuildAll(
 		return nil, err
 	}
 
-	// creating AVS clients: Reader and Writer
-	avsRegistryChainReader, avsRegistryChainSubscriber, avsRegistryChainWriter, err := config.buildAvsClients(
-		exoChainReader,
-		ethHttpClient,
-		ethWsClient,
-		txMgr,
-		logger,
-	)
-	if err != nil {
-		logger.Error("Failed to create AVS Registry Reader and Writer", "err", err)
-		return nil, err
-	}
-
 	return &Clients{
 		EXOChainReader:             exoChainReader,
 		EXOChainWriter:             exoChainWriter,
-		AvsRegistryChainReader:     avsRegistryChainReader,
-		AvsRegistryChainSubscriber: avsRegistryChainSubscriber,
-		AvsRegistryChainWriter:     avsRegistryChainWriter,
+		AvsRegistryChainSubscriber: avsRegistrySubscriber,
 		EthHttpClient:              ethHttpClient,
 		EthWsClient:                ethWsClient,
 	}, nil
@@ -95,36 +74,26 @@ func (config *BuildAllConfig) buildExoClients(
 	ethHttpClient eth.EthClient,
 	txMgr txmgr.TxManager,
 	logger logging.Logger,
-) (*exocontracts.EXOChainReader, *exocontracts.EXOChainWriter, error) {
+) (*exocontracts.EXOChainReader, *exocontracts.EXOChainWriter, *exocontracts.AvsRegistryChainSubscriber, error) {
 	exoContractBindings, err := chainioutils.NewExocoreContractBindings(
-
-		gethcommon.HexToAddress(config.depositAddr),
 		gethcommon.HexToAddress(config.avsAddr),
-		gethcommon.HexToAddress(config.avsTaskAddr),
-		gethcommon.HexToAddress(config.blsAddr),
 		ethHttpClient,
 		logger,
 	)
 	if err != nil {
 		logger.Error("Failed to create ExocoreContractBindings", "err", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// get the Reader for the Exo contracts
 	exoChainReader := exocontracts.NewExoChainReader(
-		*exoContractBindings.DepositManager,
 		*exoContractBindings.AVSManager,
-		*exoContractBindings.AvsTaskManager,
-		*exoContractBindings.BlsManager,
 		logger,
 		ethHttpClient,
 	)
 
 	elChainWriter := exocontracts.NewELChainWriter(
-		*exoContractBindings.DepositManager,
 		*exoContractBindings.AVSManager,
-		*exoContractBindings.AvsTaskManager,
-		*exoContractBindings.BlsManager,
 		exoChainReader,
 		ethHttpClient,
 		logger,
@@ -132,70 +101,19 @@ func (config *BuildAllConfig) buildExoClients(
 	)
 	if err != nil {
 		logger.Error("Failed to create EXOChainWriter", "err", err)
-		return nil, nil, err
-	}
-
-	return exoChainReader, elChainWriter, nil
-}
-
-func (config *BuildAllConfig) buildAvsClients(
-	elReader exocontracts.EXOReader,
-	ethHttpClient eth.EthClient,
-	ethWsClient eth.EthClient,
-	txMgr txmgr.TxManager,
-	logger logging.Logger,
-) (*avsregistry.AvsRegistryChainReader, *avsregistry.AvsRegistryChainSubscriber, *avsregistry.AvsRegistryChainWriter, error) {
-
-	avsRegistryContractBindings, err := chainioutils.NewAVSRegistryContractBindings(
-		gethcommon.HexToAddress(config.RegistryCoordinatorAddr),
-		gethcommon.HexToAddress(config.OperatorStateRetrieverAddr),
-		ethHttpClient,
-		logger,
-	)
-	if err != nil {
-		logger.Error("Failed to create AVSRegistryContractBindings", "err", err)
 		return nil, nil, nil, err
 	}
 
-	avsRegistryChainReader := avsregistry.NewAvsRegistryChainReader(
-		avsRegistryContractBindings.RegistryCoordinatorAddr,
-		avsRegistryContractBindings.BlsApkRegistryAddr,
-		avsRegistryContractBindings.RegistryCoordinator,
-		avsRegistryContractBindings.OperatorStateRetriever,
-		avsRegistryContractBindings.StakeRegistry,
-		logger,
+	avsRegistrySubscriber, err := exocontracts.BuildAvsRegistryChainSubscriber(
+		exoContractBindings.AvsAddr,
 		ethHttpClient,
-	)
-
-	avsRegistryChainWriter, err := avsregistry.NewAvsRegistryChainWriter(
-		avsRegistryContractBindings.ServiceManagerAddr,
-		avsRegistryContractBindings.RegistryCoordinator,
-		avsRegistryContractBindings.OperatorStateRetriever,
-		avsRegistryContractBindings.StakeRegistry,
-		avsRegistryContractBindings.BlsApkRegistry,
-		elReader,
-		logger,
-		ethHttpClient,
-		txMgr,
-	)
-	if err != nil {
-		logger.Error("Failed to create AVSRegistryChainWriter", "err", err)
-		return nil, nil, nil, err
-	}
-
-	// get the Subscriber for Avs Registry contracts
-	// note that the subscriber needs a ws connection instead of http
-	avsRegistrySubscriber, err := avsregistry.BuildAvsRegistryChainSubscriber(
-		avsRegistryContractBindings.BlsApkRegistryAddr,
-		ethWsClient,
 		logger,
 	)
 	if err != nil {
 		logger.Error("Failed to create ELChainSubscriber", "err", err)
 		return nil, nil, nil, err
 	}
-
-	return avsRegistryChainReader, avsRegistrySubscriber, avsRegistryChainWriter, nil
+	return exoChainReader, elChainWriter, avsRegistrySubscriber, err
 }
 
 // Very basic validation that makes sure all fields are nonempty
