@@ -2,17 +2,26 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"github.com/ExocoreNetwork/exocore-sdk/chainio/clients/eth"
 	sdkexocontracts "github.com/ExocoreNetwork/exocore-sdk/chainio/clients/exocontracts"
 	"github.com/ExocoreNetwork/exocore-sdk/chainio/txmgr"
+	avssub "github.com/ExocoreNetwork/exocore-sdk/contracts/bindings/avs"
 	"github.com/ExocoreNetwork/exocore-sdk/logging"
 	"github.com/ExocoreNetwork/exocore-sdk/signerv2"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/prysmaticlabs/prysm/v4/crypto/bls/blst"
+	blscommon "github.com/prysmaticlabs/prysm/v4/crypto/bls/common"
+	"github.com/stretchr/testify/require"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -20,12 +29,14 @@ type ExoClientService struct {
 	ethClient     eth.EthClient
 	exocoreReader sdkexocontracts.EXOReader
 	exocoreWriter sdkexocontracts.EXOWriter
+	exocoreSub    sdkexocontracts.AvsRegistryChainSubscriber
 }
 
 const (
 	EthUrl       = "http://127.0.0.1:8545"
-	KeystorePath = "/Users/trestin/go-latest/Project/2024/exocore-sdk-dev/chainio/clients/tests/keys/test.ecdsa.key.json"
-	AvsAddress   = "0xDF907c29719154eb9872f021d21CAE6E5025d7aB"
+	EthWsUrl     = "ws://127.0.0.1:8546"
+	KeystorePath = "/tests/keys/test.ecdsa.key.json"
+	AvsAddress   = "0x1cC54237A0b0804Af90D8078E9a224a0EB636999"
 )
 
 func NewExoClientService() (*ExoClientService, error) {
@@ -36,6 +47,11 @@ func NewExoClientService() (*ExoClientService, error) {
 	ethRpcClient, err := eth.NewClient(EthUrl)
 	if err != nil {
 		fmt.Println("Cannot create http ethclient", "err", err)
+		return nil, err
+	}
+	ethWsClient, err := eth.NewClient(EthWsUrl)
+	if err != nil {
+		fmt.Println("Cannot create ws ethclient", "err", err)
 		return nil, err
 	}
 	chainId, err := ethRpcClient.ChainID(context.Background())
@@ -49,6 +65,12 @@ func NewExoClientService() (*ExoClientService, error) {
 		fmt.Println("OPERATOR_ECDSA_KEY_PASSWORD env var not set. using empty string")
 	}
 
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	KeystorePath := filepath.Join(currentDir, KeystorePath)
 	signerV2, senderAddress, err := signerv2.SignerFromConfig(signerv2.Config{
 		KeystorePath: KeystorePath,
 		Password:     ecdsaKeyPassword,
@@ -67,17 +89,23 @@ func NewExoClientService() (*ExoClientService, error) {
 		ethRpcClient,
 		logger)
 
-	elChainWriter, _ := sdkexocontracts.BuildELChainWriter(
+	exoChainWriter, _ := sdkexocontracts.BuildELChainWriter(
 		common.HexToAddress(AvsAddress),
 
 		ethRpcClient,
 		logger,
 		txMgr)
 
+	exoChainSub, _ := sdkexocontracts.BuildAvsRegistryChainSubscriber(
+		common.HexToAddress(AvsAddress),
+		ethWsClient,
+		logger,
+	)
 	exoClientService := &ExoClientService{
 		ethClient:     ethRpcClient,
 		exocoreReader: exoChainReader,
-		exocoreWriter: elChainWriter,
+		exocoreWriter: exoChainWriter,
+		exocoreSub:    *exoChainSub,
 	}
 	return exoClientService, nil
 }
@@ -102,10 +130,34 @@ func TestRunRegisterOperatorToAVS(t *testing.T) {
 func TestRungetoperatorbyaddress(t *testing.T) {
 	service, _ := NewExoClientService()
 	fmt.Println(service.ethClient.ChainID(context.Background()))
-	operator, err := service.exocoreReader.Operators(nil, gethcommon.HexToAddress("0x860b6912c2d0337ef05bbc89b0c2cb6cbaeab4a5"))
+	operator, err := service.exocoreReader.Operators(nil, gethcommon.HexToAddress("0x2766fb07398cdfc4b0043de68dd8a8715bcbd955"))
 
 	fmt.Println(operator)
 	fmt.Println(err)
+}
+
+func TestRunSubTask(t *testing.T) {
+	service, _ := NewExoClientService()
+	fmt.Println(service.ethClient.ChainID(context.Background()))
+	newTaskCreatedChan := make(chan *avssub.ContractavsserviceTaskCreated)
+	operator, _ := service.exocoreReader.Operators(nil, gethcommon.HexToAddress("0x2766fb07398cdfc4b0043de68dd8a8715bcbd955"))
+	fmt.Println(operator)
+	sub := service.exocoreSub.SubscribeToNewTasks(newTaskCreatedChan)
+	i := 1
+	for {
+		fmt.Println(i)
+		i++
+		select {
+		case <-context.Background().Done():
+			fmt.Println("done")
+		case err := <-sub.Err():
+			fmt.Println("Error in websocket subscription", "err", err)
+			sub.Unsubscribe()
+			sub = service.exocoreSub.SubscribeToNewTasks(newTaskCreatedChan)
+		case newTaskCreatedLog := <-newTaskCreatedChan:
+			fmt.Println("newTaskCreatedChan：", newTaskCreatedLog)
+		}
+	}
 }
 
 func TestGetCode(t *testing.T) {
@@ -123,4 +175,101 @@ func TestGetCode(t *testing.T) {
 
 	fmt.Printf("Contract code = %v\n", code)
 
+}
+
+func Test_eth_subscribe(t *testing.T) {
+
+	client, err := eth.NewClient(EthWsUrl)
+	if err != nil {
+		fmt.Println("Cannot create ws ethclient", "err", err)
+	}
+
+	contractAddress := common.HexToAddress(AvsAddress)
+	query := ethereum.FilterQuery{
+		Addresses: []common.Address{contractAddress},
+	}
+
+	logs := make(chan types.Log)
+	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	for {
+		select {
+		case err := <-sub.Err():
+			fmt.Println(err)
+		case vLog := <-logs:
+			fmt.Println(vLog) // pointer to event log
+		}
+	}
+}
+func Test_bls(t *testing.T) {
+	msg := crypto.Keccak256Hash([]byte("7"))
+	privateKeys := make([]blscommon.SecretKey, 4)
+	publicKeys := make([]blscommon.PublicKey, 4)
+
+	sigs := make([]blscommon.Signature, 4)
+	for i := 0; i < 4; i++ {
+		privateKey, _ := blst.RandKey()
+		pri := privateKey.Marshal()
+		pub := privateKey.PublicKey().Marshal()
+		fmt.Println("pri:", hex.EncodeToString(pri))
+		fmt.Println("pub:", hex.EncodeToString(pub))
+
+		privateKeys[i] = privateKey
+		publicKeys[i] = privateKey.PublicKey()
+		sigs[i] = privateKey.Sign(msg[:])
+		dsig := privateKey.Sign(msg[:]).Marshal()
+		fmt.Println("dsig:", hex.EncodeToString(dsig))
+		valid := privateKey.Sign(msg[:]).Verify(privateKey.PublicKey(), msg[:])
+		require.True(t, valid, "Signature verification failed")
+
+	}
+	//s.publicKeys = append(s.publicKeys[:1], s.publicKeys[1+1:]...)
+
+	aggregatedPublicKey := blst.AggregateMultiplePubkeys(publicKeys)
+	aggregatedPub := aggregatedPublicKey.Marshal()
+	fmt.Println("aggregatedPublicKey:", hex.EncodeToString(aggregatedPub))
+
+	signature := blst.AggregateSignatures(sigs)
+
+	valid := signature.FastAggregateVerify(publicKeys, msg)
+	require.True(t, valid, "Signature verification failed")
+
+	fmt.Println("msg:", fmt.Sprintf("%x", msg)) //ok
+	aggsig := signature.Marshal()
+	fmt.Println("aggsignature:", hex.EncodeToString(aggsig)) //ok
+
+}
+func Test_bls_msgs(t *testing.T) {
+
+	privateKeys := make([]blscommon.SecretKey, 3)
+	for i := 0; i < 3; i++ {
+		privateKeys[i], _ = blst.RandKey()
+	}
+
+	publicKeys := make([]blscommon.PublicKey, 3)
+	for i := 0; i < 3; i++ {
+		publicKeys[i] = privateKeys[i].PublicKey()
+	}
+
+	messages := [][32]byte{
+		crypto.Keccak256Hash([]byte("1")),
+		crypto.Keccak256Hash([]byte("2")),
+		crypto.Keccak256Hash([]byte("3")),
+	}
+
+	signatures := make([]blscommon.Signature, 3)
+	for i := 0; i < 3; i++ {
+		msg := messages[i][:]
+		signatures[i] = privateKeys[i].Sign(msg)
+	}
+
+	aggsignature := blst.AggregateSignatures(signatures)
+
+	valid := aggsignature.AggregateVerify(publicKeys, messages)
+	require.True(t, valid, "Signature verification failed")
+
+	fmt.Println("Aggregate signature is valid for all messages:", valid)
 }

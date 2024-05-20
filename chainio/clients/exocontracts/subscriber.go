@@ -11,19 +11,19 @@ import (
 )
 
 type AvsRegistrySubscriber interface {
-	SubscribeToNewPubkeyRegistrations() (chan *avssub.ContractavsserviceTaskCreated, event.Subscription, error)
+	SubscribeToNewTasks(newTaskCreatedChan chan *avssub.ContractavsserviceTaskCreated) event.Subscription
 }
 
 type AvsRegistryChainSubscriber struct {
 	logger logging.Logger
-	avssub avssub.ContractavsserviceFilterer
+	avssub avssub.Contractavsservice
 }
 
 // forces EthSubscriber to implement the chainio.Subscriber interface
 var _ AvsRegistrySubscriber = (*AvsRegistryChainSubscriber)(nil)
 
 func NewAvsRegistryChainSubscriber(
-	avssub avssub.ContractavsserviceFilterer,
+	avssub avssub.Contractavsservice,
 	logger logging.Logger,
 ) (*AvsRegistryChainSubscriber, error) {
 	return &AvsRegistryChainSubscriber{
@@ -37,7 +37,7 @@ func BuildAvsRegistryChainSubscriber(
 	ethWsClient eth.EthClient,
 	logger logging.Logger,
 ) (*AvsRegistryChainSubscriber, error) {
-	avssub, err := avssub.NewContractavsserviceFilterer(avssubAddr, ethWsClient)
+	avssub, err := avssub.NewContractavsservice(avssubAddr, ethWsClient)
 	if err != nil {
 		logger.Error("Failed to create BLSApkRegistry contract", "err", err)
 		return nil, err
@@ -45,14 +45,13 @@ func BuildAvsRegistryChainSubscriber(
 	return NewAvsRegistryChainSubscriber(*avssub, logger)
 }
 
-func (s *AvsRegistryChainSubscriber) SubscribeToNewPubkeyRegistrations() (chan *avssub.ContractavsserviceTaskCreated, event.Subscription, error) {
-	newPubkeyRegistrationChan := make(chan *avssub.ContractavsserviceTaskCreated)
+func (s *AvsRegistryChainSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *avssub.ContractavsserviceTaskCreated) event.Subscription {
 	sub, err := s.avssub.WatchTaskCreated(
-		&bind.WatchOpts{}, newPubkeyRegistrationChan, nil, nil,
+		&bind.WatchOpts{}, newTaskCreatedChan, nil, nil,
 	)
 	if err != nil {
-		s.logger.Error("Failed to subscribe to NewPubkeyRegistration events", "err", err)
-		return nil, nil, err
+		s.logger.Error("Failed to subscribe to new  tasks", "err", err)
 	}
-	return newPubkeyRegistrationChan, sub, nil
+	s.logger.Infof("Subscribed to new TaskManager tasks")
+	return sub
 }
