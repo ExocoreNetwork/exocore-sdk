@@ -26,13 +26,18 @@ contract AvsServiceContract {
         address[] operators;
     }
 
+    string[] public assetIDs;
+    uint32 public minSelfDelegation;
+    uint32 public unbondingPeriod;
+    string public slashContractAddr;
+
     address public owner;
     uint256 public taskIdCounter;
-    uint256 public slashPercentage;
     mapping(address => Operator) public operators;
     Task[] public tasks;
     mapping(uint256 => bytes) public allTaskResponses;
     mapping(bytes => bool) public isPublicKeyRegistered;
+    address[] public owners;
 
 
     event OperatorRegistered(address indexed operatorAddress, string name);
@@ -41,10 +46,15 @@ contract AvsServiceContract {
     event TaskRewarded(uint256 indexed taskId, address indexed issuer, address[] operators, uint256[] rewards);
     event OperatorSlashed(uint256 indexed taskId, address indexed operatorAddress, uint256 slashAmount);
 
-    constructor(uint256 _slashPercentage) {
+    constructor(string[] memory _assetIDs,uint32 _minSelfDelegation,uint32 _unbondingPeriod,string memory _slashContractAddr,address[] memory _owners) {
         owner = msg.sender;
         taskIdCounter = 1;
-        slashPercentage = _slashPercentage;
+        assetIDs = _assetIDs;
+        minSelfDelegation = _minSelfDelegation;
+        unbondingPeriod = _unbondingPeriod;
+        slashContractAddr = _slashContractAddr;
+        owners = _owners;
+
     }
 
     modifier onlyOwner() {
@@ -59,16 +69,12 @@ contract AvsServiceContract {
 
     function registerAVSToExocore(
         string memory avsName,
-        string memory avsAddress,
-        string memory operatorAddress,
-        uint64 action,
-        string memory avsOwnerAddress,
-        string memory assetID
-    ) public  returns (bool) {
+        uint64 action
+    ) public onlyOwner   returns (bool) {
         (bool success, ) = AVS_PRECOMPILE_ADDRESS.call(
             abi.encodeWithSelector(
-                bytes4(keccak256("AVSAction(string,string,string,uint64,string,string)")),
-                avsName,avsAddress,operatorAddress,action,avsOwnerAddress,assetID
+                bytes4(keccak256("AVSAction([]string,string,string,[]string,uint64,uint64,uint64)")),
+                owners,avsName,slashContractAddr,assetIDs,action,minSelfDelegation,unbondingPeriod
             )
         );
 
@@ -92,7 +98,7 @@ contract AvsServiceContract {
 
     }
 
-    function registerOperatorToAVS(bytes memory publicKey, string memory name) public {
+    function registerOperatorToAVS(bytes memory publicKey, string memory name) public onlyOperator{
         require(!operators[msg.sender].isRegistered, "Operator is already registered.");
 
         operators[msg.sender] = Operator({
@@ -102,10 +108,20 @@ contract AvsServiceContract {
             isRegistered: true
         });
         isPublicKeyRegistered[publicKey] = true;
-
         emit OperatorRegistered(msg.sender, name);
     }
 
+    function registerBLSPublicKey(
+        bytes memory publicKey
+    ) public  returns (bool) {
+        (bool success, ) = TASK_PRECOMPILE_ADDRESS.call(
+            abi.encodeWithSelector(
+                bytes4(keccak256("registerBLSPublicKey(string,bytes)")),
+                msg.sender,publicKey
+            )
+        );
+        return success;
+    }
 
     function createTask(string memory description, uint256 numberX,uint256 numberY,uint256 reward, uint256 deadline) public onlyOwner {
         Task memory newTask;
@@ -199,7 +215,7 @@ contract AvsServiceContract {
 
             if (totalCompletedTasks > 0 && totalRewardsEarned > 0) {
                 uint256 averageReward = totalRewardsEarned / totalCompletedTasks;
-                uint256 slashAmount = (averageReward * slashPercentage) / 100;
+                uint256 slashAmount = (averageReward ) / 100;
 
                 if (slashAmount > totalRewardsEarned) {
                     slashAmount = totalRewardsEarned;
