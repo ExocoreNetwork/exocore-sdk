@@ -2,13 +2,15 @@ package generate
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/prysmaticlabs/prysm/v4/crypto/bls/blst"
+	blscommon "github.com/prysmaticlabs/prysm/v4/crypto/bls/common"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
-
-	"github.com/ExocoreNetwork/exocore-sdk/crypto/bls"
 
 	"github.com/ExocoreNetwork/exocore-sdk/crypto/ecdsa"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -162,7 +164,8 @@ func createPasswordAndPrivateKeyFiles(folder string) (passwordFile, privateKeyFi
 
 func generateBlsKeys(numKeys int, path string, passwordFile, privateKeyFile *os.File) error {
 	for i := 0; i < numKeys; i++ {
-		key, err := bls.GenRandomBlsKeys()
+		//key, err := bls.GenRandomBlsKeys()
+		key, err := blst.RandKey()
 		if err != nil {
 			return err
 		}
@@ -172,9 +175,9 @@ func generateBlsKeys(numKeys int, path string, passwordFile, privateKeyFile *os.
 			return err
 		}
 
-		privateKeyHex := key.PrivKey.String()
+		privateKeyHex := hex.EncodeToString(key.Marshal())
 		fileName := fmt.Sprintf("%d.bls.key.json", i+1)
-		err = key.SaveToFile(filepath.Clean(path+"/"+DefaultKeyFolder+"/"+fileName), password)
+		err = SaveToFile(key, filepath.Clean(path+"/"+DefaultKeyFolder+"/"+fileName), password)
 		if err != nil {
 			return err
 		}
@@ -265,4 +268,45 @@ func generateRandomPassword() string {
 		password[i] = allCharacters[random.Intn(len(allCharacters))]
 	}
 	return string(password)
+}
+func SaveToFile(key blscommon.SecretKey, path string, password string) error {
+	cryptoStruct, err := keystore.EncryptDataV3(
+		key.Marshal(),
+		[]byte(password),
+		keystore.StandardScryptN,
+		keystore.StandardScryptP,
+	)
+	if err != nil {
+		return err
+	}
+
+	encryptedBLSStruct := encryptedBLSKeyJSONV3{
+		hex.EncodeToString(key.PublicKey().Marshal()),
+		cryptoStruct,
+	}
+	data, err := json.Marshal(encryptedBLSStruct)
+	if err != nil {
+		return err
+	}
+
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		fmt.Println("Error creating directories:", err)
+		return err
+	}
+	err = os.WriteFile(path, data, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// We are using similar structure for saving bls keys as ethereum keystore
+// https://github.com/ethereum/go-ethereum/blob/master/accounts/keystore/key.go
+//
+// We are storing PubKey sepearately so that we can list the pubkey without
+// needing password to decrypt the private key
+type encryptedBLSKeyJSONV3 struct {
+	PubKey string              `json:"pubKey"`
+	Crypto keystore.CryptoJSON `json:"crypto"`
 }

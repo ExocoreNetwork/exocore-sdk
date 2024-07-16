@@ -2,10 +2,10 @@ package exocore
 
 import (
 	"github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/client"
+	"github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/exocoreTx/deposit"
+	"github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/exocoreTx/operator"
+	"github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/exocoreTx/restaking_assets_manage"
 	"github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/types"
-	"github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/x/deposit"
-	"github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/x/operator"
-	"github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/x/restaking_assets_manage"
 	"github.com/cosmos/cosmos-sdk/codec"
 	atypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/std"

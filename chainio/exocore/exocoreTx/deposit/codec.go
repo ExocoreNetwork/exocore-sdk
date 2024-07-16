@@ -1,4 +1,4 @@
-package operator
+package deposit
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -23,7 +23,7 @@ var (
 
 const (
 	// Amino names
-	registerOperator = "exocore/RegisterOperatorReq"
+	updateParamsName = "exocore/MsgUpdateParams"
 )
 
 // NOTE: This is required for the GetSignBytes function
@@ -36,14 +36,15 @@ func init() {
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
 		(*sdk.Msg)(nil),
-		&RegisterOperatorReq{},
+		&MsgUpdateParams{},
 	)
+
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }
 
-// RegisterLegacyAminoCodec registers the necessary x/revenue interfaces and
+// RegisterLegacyAminoCodec registers the necessary exocoreTx/revenue interfaces and
 // concrete types on the provided LegacyAmino codec. These types are used for
 // Amino JSON serialization and EIP-712 compatibility.
 func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
-	cdc.RegisterConcrete(&RegisterOperatorReq{}, registerOperator, nil)
+	cdc.RegisterConcrete(&MsgUpdateParams{}, updateParamsName, nil)
 }

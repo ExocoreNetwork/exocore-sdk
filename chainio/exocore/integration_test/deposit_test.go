@@ -2,7 +2,7 @@ package integration_test
 
 import (
 	"fmt"
-	deposit "github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/x/deposit"
+	deposit "github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/exocoreTx/deposit"
 	"github.com/stretchr/testify/require"
 )
 
