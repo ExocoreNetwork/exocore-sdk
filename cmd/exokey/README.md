@@ -1,0 +1,34 @@
+## exokey
+This tool is used to manage keys for AVS development purpose
+
+Features:
+- [Generate ecdsa or bls key in batches](#generate-ecdsa-or-bls-key-in-batches)
+
+### How to install
+#### Install from source
+```bash
+go install github.com/ExocoreNetwork/exocore-sdk/cmd/exokey@latest
+```
+
+#### Build from source
+Navigate to [exokey](../exokey/) directory and run
+```bash
+go install
+```
+
+### Generate ecdsa or bls key in batches
+
+To create in a random folder
+```bash
+egnkey generate --key-type ecdsa --num-keys <num_key>
+```
+
+To create in specific folder
+```bash
+egnkey generate --key-type ecdsa --num-keys <num_key> --output-dir <path_to_folder>
+```
+
+To create `ECDSA` and `BLS` keys in a random folder
+```bash
+egnkey generate --key-type both --num-keys <num_key>
+```

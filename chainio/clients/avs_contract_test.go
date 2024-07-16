@@ -33,8 +33,8 @@ type ExoClientService struct {
 }
 
 const (
-	EthUrl       = "http://127.0.0.1:8545"
-	EthWsUrl     = "ws://127.0.0.1:8546"
+	EthUrl       = "http://api-eth.exocore-restaking.com"
+	EthWsUrl     = "ws://api-eth-wss.exocore-restaking.com"
 	KeystorePath = "/tests/keys/test.ecdsa.key.json"
 	AvsAddress   = "0x1cC54237A0b0804Af90D8078E9a224a0EB636999"
 )

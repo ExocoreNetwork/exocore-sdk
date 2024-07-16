@@ -3,6 +3,8 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/crypto"
 	"io"
 	"math/big"
 	"net/http"
@@ -121,4 +123,13 @@ type QuorumAvsState struct {
 	TotalStake   StakeAmount
 	AggPubkeyG1  *bls.G1Point
 	BlockNumber  BlockNum
+}
+
+func OperatorIdFromKeyPair(keyPair *bls.KeyPair) OperatorId {
+	return OperatorIdFromG1Pubkey(keyPair.GetPubKeyG1())
+}
+func OperatorIdFromG1Pubkey(pubkey *bls.G1Point) OperatorId {
+	x := pubkey.X.BigInt(new(big.Int))
+	y := pubkey.Y.BigInt(new(big.Int))
+	return OperatorId(crypto.Keccak256Hash(append(math.U256Bytes(x), math.U256Bytes(y)...)))
 }

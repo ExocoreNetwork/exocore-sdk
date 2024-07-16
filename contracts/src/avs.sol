@@ -2,8 +2,7 @@
 pragma solidity >=0.8.17;
 contract AvsServiceContract {
     address constant BLS_PRECOMPILE_ADDRESS = 0x0000000000000000000000000000000000000809;
-    address constant AVS_PRECOMPILE_ADDRESS = 0x0000000000000000000000000000000000000902;
-    address constant TASK_PRECOMPILE_ADDRESS = 0x0000000000000000000000000000000000000901;
+    address constant AVS_PRECOMPILE_ADDRESS = 0x0000000000000000000000000000000000000901;
 
     struct Operator {
         bytes publicKey;
@@ -114,7 +113,7 @@ contract AvsServiceContract {
     function registerBLSPublicKey(
         bytes memory publicKey
     ) public  returns (bool) {
-        (bool success, ) = TASK_PRECOMPILE_ADDRESS.call(
+        (bool success, ) = AVS_PRECOMPILE_ADDRESS.call(
             abi.encodeWithSelector(
                 bytes4(keccak256("registerBLSPublicKey(string,bytes)")),
                 msg.sender,publicKey
