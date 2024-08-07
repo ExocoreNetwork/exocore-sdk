@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.8.17;
 import "./iavs.sol" as avs;
 contract AvsServiceContract {
@@ -24,23 +23,23 @@ contract AvsServiceContract {
     Task[] public tasks;
     mapping(uint256 => bytes) public allTaskResponses;
     mapping(bytes => bool) public isPublicKeyRegistered;
-    address[] public owners;
 
 
     event OperatorRegistered(address indexed operatorAddress, string name);
     event TaskCreated(uint256 indexed taskId, address indexed issuer, string description, uint256 reward, uint256 deadline);
     event TaskCompleted(uint256 indexed taskId, address indexed issuer);
 
-    constructor(address[] memory _owners) {
+    constructor() {
         owner = msg.sender;
         taskIdCounter = 1;
-        owners = _owners;
     }
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only contract owner can call this function.");
         _;
     }
+
+
 
     function registerAVS(
         string memory avsName,
@@ -262,6 +261,9 @@ contract AvsServiceContract {
         emit TaskCompleted(taskId, task.issuer);
 
     }
+
+
+
 
     function getTaskCount() public view returns (uint256) {
         return tasks.length;

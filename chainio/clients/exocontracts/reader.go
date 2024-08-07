@@ -5,7 +5,6 @@ import (
 	chainioutils "github.com/ExocoreNetwork/exocore-sdk/chainio/utils"
 	avs "github.com/ExocoreNetwork/exocore-sdk/contracts/bindings/avs"
 	"github.com/ExocoreNetwork/exocore-sdk/logging"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"math/big"
 )
@@ -15,7 +14,6 @@ type EXOReader interface {
 	//Name               string
 	//TotalRewardsEarned *big.Int
 	//IsRegistered       bool
-	Operators(opts *bind.CallOpts, operatorAddress gethcommon.Address) (Operator, error)
 }
 type Operator struct {
 	PublicKey          []byte
@@ -62,17 +60,4 @@ func BuildExoChainReader(
 		logger,
 		ethClient,
 	), nil
-}
-
-func (r *EXOChainReader) Operators(opts *bind.CallOpts, operatorAddress gethcommon.Address) (Operator, error) {
-
-	operator, err := r.avsManager.Operators(
-		opts,
-		operatorAddress,
-	)
-	if err != nil {
-		r.logger.Error("Failed to get operator ", "err", err)
-		return Operator{}, err
-	}
-	return operator, nil
 }

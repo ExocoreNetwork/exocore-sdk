@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	gethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -110,29 +109,27 @@ func NewExoClientService() (*ExoClientService, error) {
 	return exoClientService, nil
 }
 
-func TestRunAVSAction(t *testing.T) {
+func TestRunRegisterAVS(t *testing.T) {
 	service, _ := NewExoClientService()
 	fmt.Println(service.ethClient.ChainID(context.Background()))
-	avsName, avsAddress, operatorAddress, avsOwnerAddress, assetID := "avsTest", "exo13h6xg79g82e2g2vhjwg7j4r2z2hlncelwutkjr", "exo18h6xg79g82e2g2vhjwg7j4r2z2hlncelwutkjr", "0xdAC17F958D2ee523a2206206994597C13D831ec7", "222"
-	_, err := service.exocoreWriter.RegisterAVSToExocore(context.Background(), avsName, avsAddress, operatorAddress, 1, avsOwnerAddress, assetID)
-	fmt.Println(err)
-}
-func TestRunRegisterOperatorToAVS(t *testing.T) {
-	service, _ := NewExoClientService()
-	fmt.Println(service.ethClient.ChainID(context.Background()))
-	pubkey, err := hexutil.Decode("0x818c91204445f4052ae7f51f9fb85d67359b309cf98bc6d0e36f8b2916b50512666cfd2f74b1d2320e4648f4acadd282")
-	r, err := service.exocoreWriter.RegisterOperatorToAVS(context.Background(), pubkey, "operator02")
-
-	fmt.Println(r.Status)
-	fmt.Println(err)
-}
-
-func TestRungetoperatorbyaddress(t *testing.T) {
-	service, _ := NewExoClientService()
-	fmt.Println(service.ethClient.ChainID(context.Background()))
-	operator, err := service.exocoreReader.Operators(nil, gethcommon.HexToAddress("0x2766fb07398cdfc4b0043de68dd8a8715bcbd955"))
-
-	fmt.Println(operator)
+	avsName, epochIdentifier := "avsTest", "day"
+	avsOwnerAddress := []string{"exo13h6xg79g82e2g2vhjwg7j4r2z2hlncelwutkjr", "exo13h6xg79g82e2g2vhjwg7j4r2z2hlncelwutkj1", "exo13h6xg79g82e2g2vhjwg7j4r2z2hlncelwutkj2"}
+	assetIds := []string{"0xdac17f958d2ee523a2206206994597c13d831ec7_0x65"}
+	minStakeAmount, avsUnbondingPeriod, minSelfDelegation := 3, 3, 5
+	params := []uint64{5, 7, 8, 4}
+	_, err := service.exocoreWriter.RegisterAVSToExocore(context.Background(),
+		avsName,
+		uint64(minStakeAmount),
+		gethcommon.HexToAddress("0xDF907c29719154eb9872f021d21CAE6E5025d7aB"),
+		gethcommon.HexToAddress("0xDF907c29719154eb9872f021d21CAE6E5025d7aB"),
+		gethcommon.HexToAddress("0xDF907c29719154eb9872f021d21CAE6E5025d7aB"),
+		avsOwnerAddress,
+		assetIds,
+		uint64(avsUnbondingPeriod),
+		uint64(minSelfDelegation),
+		epochIdentifier,
+		params,
+	)
 	fmt.Println(err)
 }
 
@@ -140,8 +137,6 @@ func TestRunSubTask(t *testing.T) {
 	service, _ := NewExoClientService()
 	fmt.Println(service.ethClient.ChainID(context.Background()))
 	newTaskCreatedChan := make(chan *avssub.ContractavsserviceTaskCreated)
-	operator, _ := service.exocoreReader.Operators(nil, gethcommon.HexToAddress("0x2766fb07398cdfc4b0043de68dd8a8715bcbd955"))
-	fmt.Println(operator)
 	sub := service.exocoreSub.SubscribeToNewTasks(newTaskCreatedChan)
 	i := 1
 	for {
@@ -309,5 +304,4 @@ func Test_bls_msgs1(t *testing.T) {
 	valid3 := aggsignature.Eth2FastAggregateVerify(publicKeys, msg)
 	fmt.Println("Aggregate signature2 is valid for all messages:", valid2)
 	fmt.Println("Aggregate signature3 is valid for all messages:", valid3)
-
 }
