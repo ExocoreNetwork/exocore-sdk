@@ -35,7 +35,7 @@ const (
 	EthUrl       = "http://127.0.0.1:8545"
 	EthWsUrl     = "ws://127.0.0.1:8546"
 	KeystorePath = "/tests/keys/test.ecdsa.key.json"
-	AvsAddress   = "0xE54E80c3Cff42F6bD9Af936464583c2E1ba73bFb"
+	AvsAddress   = "0x52ce3752aF2A5675F23DA541e6cB78581369362E"
 )
 
 func NewExoClientService() (*ExoClientService, error) {
@@ -109,11 +109,12 @@ func NewExoClientService() (*ExoClientService, error) {
 	return exoClientService, nil
 }
 
+// sender addr is 0x860B6912C2d0337ef05bbC89b0C2CB6CbAEAB4A5(exo1sc9kjykz6qehauzmhjympsktdjaw4d99dksgrk)
 func TestRunRegisterAVS(t *testing.T) {
 	service, _ := NewExoClientService()
 	fmt.Println(service.ethClient.ChainID(context.Background()))
 	avsName, epochIdentifier := "avsTest", "day"
-	avsOwnerAddress := []string{"exo13h6xg79g82e2g2vhjwg7j4r2z2hlncelwutkjr", "exo13h6xg79g82e2g2vhjwg7j4r2z2hlncelwutkj1", "exo13h6xg79g82e2g2vhjwg7j4r2z2hlncelwutkj2"}
+	avsOwnerAddress := []string{"exo13h6xg79g82e2g2vhjwg7j4r2z2hlncelwutkjr", "exo1sc9kjykz6qehauzmhjympsktdjaw4d99dksgrk"}
 	assetIds := []string{"0xdac17f958d2ee523a2206206994597c13d831ec7_0x65"}
 	minStakeAmount, avsUnbondingPeriod, minSelfDelegation := 3, 3, 5
 	params := []uint64{5, 7, 8, 4}
@@ -169,6 +170,47 @@ func TestGetCode(t *testing.T) {
 	}
 
 	fmt.Printf("Contract code = %v\n", code)
+
+}
+
+func TestGetBalance(t *testing.T) {
+
+	client, err := ethclient.Dial(EthUrl)
+	if err != nil {
+		panic(err)
+	}
+
+	chainId, err := client.ChainID(context.Background())
+	if err != nil {
+		fmt.Println("Cannot get chainId", "err", err)
+		return
+	}
+
+	ecdsaKeyPassword, ok := os.LookupEnv("OPERATOR_ECDSA_KEY_PASSWORD")
+	if !ok {
+		fmt.Println("OPERATOR_ECDSA_KEY_PASSWORD env var not set. using empty string")
+	}
+
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return
+	}
+
+	KeystorePath := filepath.Join(currentDir, KeystorePath)
+	_, senderAddress, err := signerv2.SignerFromConfig(signerv2.Config{
+		KeystorePath: KeystorePath,
+		Password:     ecdsaKeyPassword,
+	}, chainId)
+	if err != nil {
+		panic(err)
+	}
+
+	balance, err := client.BalanceAt(context.Background(), senderAddress, nil)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(senderAddress.String())
+	fmt.Printf("balance = %v\n", balance)
 
 }
 
