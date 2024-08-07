@@ -5,7 +5,7 @@ rm -rf out
 mkdir -p out/binding
 
 # Traverse all subdirectories in the "pre" folder
-for dir in precompiles/*/; do
+for dir in ./contracts/src/v2/; do
     # Extract the directory name (excluding the path)
     dirname=$(basename "$dir")
 

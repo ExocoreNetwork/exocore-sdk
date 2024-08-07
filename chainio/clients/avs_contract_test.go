@@ -33,10 +33,10 @@ type ExoClientService struct {
 }
 
 const (
-	EthUrl       = "http://api-eth.exocore-restaking.com"
-	EthWsUrl     = "ws://api-eth-wss.exocore-restaking.com"
+	EthUrl       = "http://127.0.0.1:8545"
+	EthWsUrl     = "ws://127.0.0.1:8546"
 	KeystorePath = "/tests/keys/test.ecdsa.key.json"
-	AvsAddress   = "0x1cC54237A0b0804Af90D8078E9a224a0EB636999"
+	AvsAddress   = "0xE54E80c3Cff42F6bD9Af936464583c2E1ba73bFb"
 )
 
 func NewExoClientService() (*ExoClientService, error) {
@@ -219,8 +219,11 @@ func Test_bls(t *testing.T) {
 
 		privateKeys[i] = privateKey
 		publicKeys[i] = privateKey.PublicKey()
+		fmt.Println(len(privateKey.PublicKey().Marshal()))
 		sigs[i] = privateKey.Sign(msg[:])
 		dsig := privateKey.Sign(msg[:]).Marshal()
+		fmt.Println(len(dsig))
+
 		fmt.Println("dsig:", hex.EncodeToString(dsig))
 		valid := privateKey.Sign(msg[:]).Verify(privateKey.PublicKey(), msg[:])
 		require.True(t, valid, "Signature verification failed")
@@ -235,7 +238,10 @@ func Test_bls(t *testing.T) {
 	signature := blst.AggregateSignatures(sigs)
 
 	valid := signature.FastAggregateVerify(publicKeys, msg)
+	valid1 := signature.Verify(aggregatedPublicKey, msg.Bytes())
+
 	require.True(t, valid, "Signature verification failed")
+	require.True(t, valid1, "Signature verification failed")
 
 	fmt.Println("msg:", fmt.Sprintf("%x", msg)) //ok
 	aggsig := signature.Marshal()
@@ -268,8 +274,40 @@ func Test_bls_msgs(t *testing.T) {
 
 	aggsignature := blst.AggregateSignatures(signatures)
 
-	valid := aggsignature.AggregateVerify(publicKeys, messages)
-	require.True(t, valid, "Signature verification failed")
+	valid1 := aggsignature.AggregateVerify(publicKeys, messages)
+	valid2 := aggsignature.FastAggregateVerify(publicKeys, crypto.Keccak256Hash([]byte("1")))
+	valid3 := aggsignature.Eth2FastAggregateVerify(publicKeys, crypto.Keccak256Hash([]byte("1")))
+	fmt.Println("Aggregate signature1 is valid for all messages:", valid1)
+	fmt.Println("Aggregate signature2 is valid for all messages:", valid2)
+	fmt.Println("Aggregate signature3 is valid for all messages:", valid3)
 
-	fmt.Println("Aggregate signature is valid for all messages:", valid)
+	require.True(t, valid1, "Signature verification failed")
+
+}
+
+func Test_bls_msgs1(t *testing.T) {
+
+	privateKeys := make([]blscommon.SecretKey, 3)
+	for i := 0; i < 3; i++ {
+		privateKeys[i], _ = blst.RandKey()
+	}
+
+	publicKeys := make([]blscommon.PublicKey, 3)
+	for i := 0; i < 3; i++ {
+		publicKeys[i] = privateKeys[i].PublicKey()
+	}
+	msg := crypto.Keccak256Hash([]byte("1"))
+
+	signatures := make([]blscommon.Signature, 3)
+	for i := 0; i < 3; i++ {
+		signatures[i] = privateKeys[i].Sign(msg.Bytes())
+	}
+
+	aggsignature := blst.AggregateSignatures(signatures)
+
+	valid2 := aggsignature.FastAggregateVerify(publicKeys, msg)
+	valid3 := aggsignature.Eth2FastAggregateVerify(publicKeys, msg)
+	fmt.Println("Aggregate signature2 is valid for all messages:", valid2)
+	fmt.Println("Aggregate signature3 is valid for all messages:", valid3)
+
 }
