@@ -1,7 +1,10 @@
 package types
 
 import (
+	"errors"
 	"testing"
+
+	"github.com/ExocoreNetwork/exocore-sdk/utils"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -47,7 +50,7 @@ func TestOperatorValidate(t *testing.T) {
 				MetadataUrl:               "",
 			},
 			wantErr:     true,
-			expectedErr: wrapError(ErrInvalidMetadataUrl, ErrEmptyUrl),
+			expectedErr: utils.WrapError(ErrInvalidMetadataUrl, utils.ErrEmptyUrl),
 		},
 		{
 			name: "failed operator validation - localhost metadata url",
@@ -59,7 +62,7 @@ func TestOperatorValidate(t *testing.T) {
 				MetadataUrl:               "http://localhost:8080/metadata.json",
 			},
 			wantErr:     true,
-			expectedErr: wrapError(ErrInvalidMetadataUrl, ErrUrlPointingToLocalServer),
+			expectedErr: utils.WrapError(ErrInvalidMetadataUrl, utils.ErrUrlPointingToLocalServer),
 		},
 		{
 			name: "failed operator validation - 127.0.0.1 metadata url",
@@ -71,7 +74,7 @@ func TestOperatorValidate(t *testing.T) {
 				MetadataUrl:               "http://127.0.0.1:8080/metadata.json",
 			},
 			wantErr:     true,
-			expectedErr: wrapError(ErrInvalidMetadataUrl, ErrUrlPointingToLocalServer),
+			expectedErr: utils.WrapError(ErrInvalidMetadataUrl, utils.ErrUrlPointingToLocalServer),
 		},
 		{
 			name: "failed operator validation - bad metadata",
@@ -82,8 +85,11 @@ func TestOperatorValidate(t *testing.T) {
 				StakerOptOutWindowBlocks:  100,
 				MetadataUrl:               "https://example.com/metadata.json",
 			},
-			wantErr:     true,
-			expectedErr: ErrUnmarshalOperatorMetadata,
+			wantErr: true,
+			expectedErr: utils.WrapError(
+				ErrReadingMetadataUrlResponse,
+				errors.New("error fetching url: 404 Not Found"),
+			),
 		},
 		{
 			name: "failed operator validation - wrong operator address",
@@ -98,7 +104,7 @@ func TestOperatorValidate(t *testing.T) {
 			expectedErr: ErrInvalidOperatorAddress,
 		},
 		{
-			name: "failed operator validation - wrong earning recievers address address",
+			name: "failed operator validation - wrong earning receivers address address",
 			operator: Operator{
 				Address:                   "0xd5e099c71b797516c10ed0f0d895f429c2781142",
 				DelegationApproverAddress: "0xd5e099c71b797516c10ed0f0d895f429c2781142",

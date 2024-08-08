@@ -2,9 +2,6 @@ package exocore
 
 import (
 	"github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/client"
-	"github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/exocoreTx/deposit"
-	"github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/exocoreTx/operator"
-	"github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/exocoreTx/restaking_assets_manage"
 	"github.com/ExocoreNetwork/exocore-sdk/chainio/exocore/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	atypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -14,33 +11,20 @@ import (
 )
 
 type Client struct {
-	logger            log.Logger
-	encodingConfig    types.EncodingConfig
-	Deposit           deposit.Client
-	baseclient        client.BaseClient
-	AssetManageClient restaking_assets_manage.Client
-	OperatorClient    operator.Client
+	logger         log.Logger
+	encodingConfig types.EncodingConfig
+	baseclient     client.BaseClient
 }
 
 func NewClient(cfg types.ClientConfig) Client {
 	encodingConfig := makeEncodingConfig()
-
 	baseClient := client.NewBaseClient(cfg, encodingConfig, log.New())
-
-	depositClient := deposit.NewClient(baseClient)
-	assetManageClient := restaking_assets_manage.NewClient(baseClient)
-	operatorClient := operator.NewClient(baseClient)
 	client := Client{
-		logger:            nil,
-		Deposit:           depositClient,
-		AssetManageClient: assetManageClient,
-		encodingConfig:    encodingConfig,
-		baseclient:        baseClient,
-		OperatorClient:    operatorClient,
+		logger:         nil,
+		encodingConfig: encodingConfig,
+		baseclient:     baseClient,
 	}
-	client.RegisterModule(
-		depositClient,
-	)
+	client.RegisterModule()
 	return client
 }
 func makeEncodingConfig() types.EncodingConfig {
