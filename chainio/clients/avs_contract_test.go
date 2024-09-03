@@ -346,4 +346,14 @@ func Test_bls_msgs1(t *testing.T) {
 	valid3 := aggsignature.Eth2FastAggregateVerify(publicKeys, msg)
 	fmt.Println("Aggregate signature2 is valid for all messages:", valid2)
 	fmt.Println("Aggregate signature3 is valid for all messages:", valid3)
+
+	sigN := privateKeys[1].Sign(msg.Bytes())
+	a := sigN.Marshal()
+	fmt.Println(a)
+	valid := sigN.Verify(publicKeys[1], msg.Bytes())
+	fmt.Println(" sigN is valid for all messages:", valid)
+
+	b, _ := blst.VerifySignature(a, [32]byte(msg.Bytes()), publicKeys[1])
+	fmt.Println(" b is valid for all messages:", b)
+
 }
