@@ -1,11 +1,8 @@
 pragma solidity >=0.8.17;
-import "./iavs.sol" as avs;
+import "./IAVSManager.sol" as avs;
 contract AvsServiceContract {
     address constant BLS_PRECOMPILE_ADDRESS = 0x0000000000000000000000000000000000000809;
-    address constant AVS_PRECOMPILE_ADDRESS = 0x0000000000000000000000000000000000000901;
-
     address public owner;
-
     constructor() {
         owner = msg.sender;
     }
@@ -14,8 +11,6 @@ contract AvsServiceContract {
         require(msg.sender == owner, "Only contract owner can call this function.");
         _;
     }
-
-
 
     function registerAVS(
         string memory avsName,
@@ -31,6 +26,7 @@ contract AvsServiceContract {
         uint64[] memory params
     ) public returns (bool) {
         bool success =  avs.AVSMANAGER_CONTRACT.registerAVS(
+            msg.sender,
             avsName,
             minStakeAmount,
             taskAddr,
@@ -61,6 +57,7 @@ contract AvsServiceContract {
         uint64[] memory params
     ) public returns (bool) {
         bool success =  avs.AVSMANAGER_CONTRACT.updateAVS(
+            msg.sender,
             avsName,
             minStakeAmount,
             taskAddr,
@@ -80,6 +77,7 @@ contract AvsServiceContract {
 
     function deregisterAVS(string memory avsName) public returns (bool) {
         bool success = avs.AVSMANAGER_CONTRACT.deregisterAVS(
+            msg.sender,
             avsName
         );
         return success;
@@ -88,7 +86,7 @@ contract AvsServiceContract {
     function registerOperatorToAVS() public returns (bool) {
 
         bool success = avs.AVSMANAGER_CONTRACT.registerOperatorToAVS(
-
+        msg.sender
         );
         return success;
     }
@@ -96,43 +94,23 @@ contract AvsServiceContract {
     function deregisterOperatorFromAVS() public returns (bool) {
 
         bool success = avs.AVSMANAGER_CONTRACT.deregisterOperatorFromAVS(
-
-        );
-        return success;
-    }
-
-
-    function submitProof(
-        string memory taskId,
-        string memory taskContractAddress,
-        string memory aggregator,
-        string memory avsAddress,
-        bytes memory operatorStatus
-    ) public returns (bool) {
-        bool success = avs.AVSMANAGER_CONTRACT.submitProof(
-            taskId,
-            taskContractAddress,
-            aggregator,
-            avsAddress,
-            operatorStatus
+        msg.sender
         );
         return success;
     }
 
     function registerBLSPublicKey(
-        string memory operator,
         string memory name,
         bytes memory pubKey,
-        bytes memory pubkeyRegistrationSignature,
-        bytes memory pubkeyRegistrationMessageHash
+        bytes memory pubKeyRegistrationSignature,
+        bytes memory pubKeyRegistrationMessageHash
     ) public returns (bool) {
-
         bool success = avs.AVSMANAGER_CONTRACT.registerBLSPublicKey(
-            operator,
+            msg.sender,
             name,
             pubKey,
-            pubkeyRegistrationSignature,
-            pubkeyRegistrationMessageHash
+            pubKeyRegistrationSignature,
+            pubKeyRegistrationMessageHash
         );
         return success;
     }
@@ -174,16 +152,21 @@ contract AvsServiceContract {
 
     }
 
-
-    function registerBLSPublicKey(
-        bytes memory publicKey
-    ) public  returns (bool) {
-        (bool success, ) = AVS_PRECOMPILE_ADDRESS.call(
-            abi.encodeWithSelector(
-                bytes4(keccak256("registerBLSPublicKey(string,bytes)")),
-                msg.sender,publicKey
-            )
+    function submitProof(
+        string memory taskId,
+        string memory taskContractAddress,
+        string memory aggregator,
+        string memory avsAddress,
+        bytes memory operatorStatus
+    ) public returns (bool) {
+        bool success = avs.AVSMANAGER_CONTRACT.submitProof(
+            taskId,
+            taskContractAddress,
+            aggregator,
+            avsAddress,
+            operatorStatus
         );
         return success;
     }
+
 }

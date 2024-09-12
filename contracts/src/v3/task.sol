@@ -1,5 +1,5 @@
 pragma solidity ^0.8.0;
-import "./iavs.sol" as avs;
+import "./IAVSManager.sol" as avs;
 
 contract AVSTask {
     // task submitter decides on the criteria for a task to be completed
@@ -48,6 +48,7 @@ contract AVSTask {
         newTask.thresholdPercentage = thresholdPercentage;
 
         bool success = avs.AVSMANAGER_CONTRACT.createTask(
+            msg.sender,
             name,
             abi.encodePacked(keccak256(abi.encode(newTask))),
             taskResponsePeriod,
@@ -82,6 +83,7 @@ contract AVSTask {
 
         // the task response has been challenged successfully
         bool success = avs.AVSMANAGER_CONTRACT.challenge(
+            msg.sender,
             abi.encodePacked(keccak256(abi.encode(task))),
             taskResponse.taskID,
             abi.encodePacked(keccak256(abi.encode(taskResponse))),
