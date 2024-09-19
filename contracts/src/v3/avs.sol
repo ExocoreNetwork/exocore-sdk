@@ -3,6 +3,8 @@ import "./IAVSManager.sol" as avs;
 contract AvsServiceContract {
     address constant BLS_PRECOMPILE_ADDRESS = 0x0000000000000000000000000000000000000809;
     address public owner;
+    event DataLogged(bytes data);
+
     constructor() {
         owner = msg.sender;
     }
@@ -86,7 +88,7 @@ contract AvsServiceContract {
     function registerOperatorToAVS() public returns (bool) {
 
         bool success = avs.AVSMANAGER_CONTRACT.registerOperatorToAVS(
-        msg.sender
+            msg.sender
         );
         return success;
     }
@@ -94,7 +96,7 @@ contract AvsServiceContract {
     function deregisterOperatorFromAVS() public returns (bool) {
 
         bool success = avs.AVSMANAGER_CONTRACT.deregisterOperatorFromAVS(
-        msg.sender
+            msg.sender
         );
         return success;
     }
@@ -118,21 +120,20 @@ contract AvsServiceContract {
     function getRegisteredPubkey(string memory operator) public returns (bytes memory) {
 
 
-        bool success; bytes memory data = avs.AVSMANAGER_CONTRACT.getRegisteredPubkey(
-        operator
-    );
+        bytes memory data = avs.AVSMANAGER_CONTRACT.getRegisteredPubkey(
+            operator
+        );
+        emit DataLogged(data);
 
-        require(success, "Call failed");
         return abi.decode(data, (bytes));
     }
 
     function getOptInOperators(address avsAddress) public returns (string[] memory) {
-        bool success; string[] memory data = avs.AVSMANAGER_CONTRACT.getOptInOperators(
-        avsAddress
-    );
+        string[] memory data = avs.AVSMANAGER_CONTRACT.getOptInOperators(
+            avsAddress
+        );
 
 
-        require(success, "Call failed");
         return data;
     }
 
