@@ -124,8 +124,8 @@ contract AvsServiceContract {
             operator
         );
         emit DataLogged(data);
-
-        return abi.decode(data, (bytes));
+        return data;
+        //return abi.decode(data, (bytes));
     }
 
     function getOptInOperators(address avsAddress) public returns (string[] memory) {
