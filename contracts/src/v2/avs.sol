@@ -223,7 +223,7 @@ contract AvsServiceContract {
         newTask.isCompleted = false;
         newTask.isRewarded = false;
 
-        // 初始化映射
+        // initialize the mapping
         newTask.operators = new address[](0);
 
         tasks.push(newTask);
