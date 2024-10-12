@@ -1,4 +1,4 @@
-package main
+package clients_test
 
 import (
 	"context"
@@ -40,7 +40,7 @@ const (
 
 func NewExoClientService() (*ExoClientService, error) {
 
-	//privateKey, _ := hex.DecodeString("145e247e170ba3afd6ae97e88f00dbc976c2345d511b0f6713355d19d8b80b58")
+	// privateKey, _ := hex.DecodeString("145e247e170ba3afd6ae97e88f00dbc976c2345d511b0f6713355d19d8b80b58")
 
 	var ethRpcClient eth.EthClient
 	ethRpcClient, err := eth.NewClient(EthUrl)
@@ -266,7 +266,7 @@ func Test_bls(t *testing.T) {
 		require.True(t, valid, "Signature verification failed")
 
 	}
-	//s.publicKeys = append(s.publicKeys[:1], s.publicKeys[1+1:]...)
+	// s.publicKeys = append(s.publicKeys[:1], s.publicKeys[1+1:]...)
 
 	aggregatedPublicKey := blst.AggregateMultiplePubkeys(publicKeys)
 	aggregatedPub := aggregatedPublicKey.Marshal()
@@ -280,9 +280,9 @@ func Test_bls(t *testing.T) {
 	require.True(t, valid, "Signature verification failed")
 	require.True(t, valid1, "Signature verification failed")
 
-	fmt.Println("msg:", fmt.Sprintf("%x", msg)) //ok
+	fmt.Println("msg:", fmt.Sprintf("%x", msg)) // ok
 	aggsig := signature.Marshal()
-	fmt.Println("aggsignature:", hex.EncodeToString(aggsig)) //ok
+	fmt.Println("aggsignature:", hex.EncodeToString(aggsig)) // ok
 
 }
 func Test_bls_msgs(t *testing.T) {

@@ -1,4 +1,4 @@
-package main
+package clients
 
 import (
 	"github.com/ExocoreNetwork/exocore-sdk/chainio/clients/eth"
