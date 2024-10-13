@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/ExocoreNetwork/exocore-sdk/cmd/exokey/generate"
-	"github.com/ExocoreNetwork/exocore-sdk/cmd/exokey/operatorid"
 	"github.com/ExocoreNetwork/exocore-sdk/cmd/exokey/store"
 	"github.com/urfave/cli/v2"
 )
@@ -17,7 +16,6 @@ func main() {
 	app.Commands = []*cli.Command{
 		generate.Command,
 		store.Command,
-		operatorid.Command,
 	}
 
 	app.Usage = "Used to manage batch keys for testing"
