@@ -47,7 +47,7 @@ func BuildAvsRegistryChainSubscriber(
 
 func (s *AvsRegistryChainSubscriber) SubscribeToNewTasks(newTaskCreatedChan chan *avssub.ContractavsserviceTaskCreated) event.Subscription {
 	sub, err := s.avssub.WatchTaskCreated(
-		&bind.WatchOpts{}, newTaskCreatedChan, nil, nil,
+		&bind.WatchOpts{}, newTaskCreatedChan,
 	)
 	if err != nil {
 		s.logger.Error("Failed to subscribe to new  tasks", "err", err)

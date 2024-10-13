@@ -2,14 +2,17 @@ package exocontracts
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"errors"
 	"github.com/ExocoreNetwork/exocore-sdk/chainio/clients/eth"
 	"github.com/ExocoreNetwork/exocore-sdk/chainio/txmgr"
 	chainioutils "github.com/ExocoreNetwork/exocore-sdk/chainio/utils"
 	avs "github.com/ExocoreNetwork/exocore-sdk/contracts/bindings/avs"
 	"github.com/ExocoreNetwork/exocore-sdk/logging"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
+	"math/big"
 )
 
 type EXOWriter interface {
@@ -124,4 +127,25 @@ func (w *EXOChainWriter) RegisterAVSToExocore(
 	w.logger.Infof("tx hash: %s", tx.Hash().String())
 
 	return receipt, nil
+}
+func DeployAVS(
+	ethClient eth.EthClient,
+	logger logging.Logger,
+	key ecdsa.PrivateKey,
+	chainID *big.Int,
+) (gethcommon.Address, string, error) {
+	auth, err := bind.NewKeyedTransactorWithChainID(&key, chainID)
+	if err != nil {
+		logger.Fatalf("Failed to make transactor: %v", err)
+	}
+
+	address, tx, _, err := avs.DeployContractavsservice(auth, ethClient)
+	if err != nil {
+		logger.Infof("deploy err: %s", err.Error())
+		return gethcommon.Address{}, "", errors.New("failed to deploy contract with err: " + err.Error())
+	}
+	logger.Infof("tx hash: %s", tx.Hash().String())
+	logger.Infof("contract address: %s", address.Hash().String())
+
+	return address, tx.Hash().String(), nil
 }
