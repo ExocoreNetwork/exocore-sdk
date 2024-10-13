@@ -30,6 +30,15 @@ type EXOWriter interface {
 		epochIdentifier string,
 		params []uint64,
 	) (*gethtypes.Receipt, error)
+
+	CreateNewTask(
+		ctx context.Context,
+		name string,
+		taskResponsePeriod uint64,
+		taskChallengePeriod uint64,
+		thresholdPercentage uint64,
+		taskStatisticalPeriod uint64,
+	) (*gethtypes.Receipt, error)
 }
 
 type EXOChainWriter struct {
@@ -128,6 +137,37 @@ func (w *EXOChainWriter) RegisterAVSToExocore(
 
 	return receipt, nil
 }
+func (w *EXOChainWriter) CreateNewTask(
+	ctx context.Context,
+	name string,
+	taskResponsePeriod uint64,
+	taskChallengePeriod uint64,
+	thresholdPercentage uint64,
+	taskStatisticalPeriod uint64,
+) (*gethtypes.Receipt, error) {
+	noSendTxOpts, err := w.txMgr.GetNoSendTxOpts()
+	if err != nil {
+		return nil, err
+	}
+	tx, err := w.avsManager.CreateNewTask(
+		noSendTxOpts,
+		name,
+		taskResponsePeriod,
+		taskChallengePeriod,
+		thresholdPercentage,
+		taskStatisticalPeriod)
+	if err != nil {
+		return nil, err
+	}
+	receipt, err := w.txMgr.Send(ctx, tx)
+	if err != nil {
+		return nil, errors.New("failed to send tx with err: " + err.Error())
+	}
+	w.logger.Infof("tx hash: %s", tx.Hash().String())
+
+	return receipt, nil
+}
+
 func DeployAVS(
 	ethClient eth.EthClient,
 	logger logging.Logger,
