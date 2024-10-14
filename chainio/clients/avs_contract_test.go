@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"fmt"
 	"github.com/ExocoreNetwork/exocore-sdk/chainio/clients/eth"
 	sdkexocontracts "github.com/ExocoreNetwork/exocore-sdk/chainio/clients/exocontracts"
 	"github.com/ExocoreNetwork/exocore-sdk/chainio/txmgr"
@@ -23,6 +24,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 )
@@ -243,7 +245,9 @@ func TestRunCreateTask(t *testing.T) {
 		params,
 	)
 	log.Println(err)
-	time.Sleep(5 * time.Second)
+	time.Sleep(20 * time.Second)
+	log.Println("start CreateNewTask")
+
 	service.exocoreWriter.CreateNewTask(
 		context.Background(),
 		"hello-world",
@@ -255,14 +259,31 @@ func TestRunCreateTask(t *testing.T) {
 	log.Println(err)
 }
 
-func TestRunSubTask(t *testing.T) {
-	avsAddr, _, _ := DeployAVS()
-	//The successful execution of the transaction for deploying the contract
-	//and packaging it into the block requires waiting for a moment
-	time.Sleep(5 * time.Second)
-	log.Println("avs###" + avsAddr.String())
-	service, _ := NewExoClientService(avsAddr)
+func TestRegisterAVSByAddr(t *testing.T) {
+	service, _ := NewExoClientService(common.HexToAddress("0xE0B9B42720cD4da7ca273273860702b032509118"))
 	log.Println(service.ethClient.ChainID(context.Background()))
+	avsName, epochIdentifier := "avsTest", "hour"
+	avsOwnerAddress := []string{"exo18cggcpvwspnd5c6ny8wrqxpffj5zmhklprtnph", "exo1sc9kjykz6qehauzmhjympsktdjaw4d99dksgrk"}
+	assetIds := []string{"0xdac17f958d2ee523a2206206994597c13d831ec7_0x65"}
+	minStakeAmount, avsUnbondingPeriod, minSelfDelegation := 3, 3, 5
+	params := []uint64{5, 7, 8, 4}
+	_, _ = service.exocoreWriter.RegisterAVSToExocore(context.Background(),
+		avsName,
+		uint64(minStakeAmount),
+		gethcommon.HexToAddress("0xE0B9B42720cD4da7ca273273860702b032509118"),
+		gethcommon.HexToAddress("0x92D203486fc326Eaad87f3B876b3A5a7db245F3c"),
+		gethcommon.HexToAddress("0x92D203486fc326Eaad87f3B876b3A5a7db245F3c"),
+		avsOwnerAddress,
+		assetIds,
+		uint64(avsUnbondingPeriod),
+		uint64(minSelfDelegation),
+		epochIdentifier,
+		params,
+	)
+}
+func TestRunJustSub(t *testing.T) {
+	log.Println("GoroutineForSub")
+	service, _ := NewExoClientService(common.HexToAddress("0xDF907c29719154eb9872f021d21CAE6E5025d7aB"))
 	newTaskCreatedChan := make(chan *avssub.ContractavsserviceTaskCreated)
 	sub := service.exocoreSub.SubscribeToNewTasks(newTaskCreatedChan)
 	i := 1
@@ -280,6 +301,88 @@ func TestRunSubTask(t *testing.T) {
 			log.Println("newTaskCreatedChan：", newTaskCreatedLog)
 		}
 	}
+}
+func GoroutineForSub(wg *sync.WaitGroup, addr common.Address) {
+	defer wg.Done()
+	log.Println("GoroutineForSub")
+	service, _ := NewExoClientService(addr)
+	newTaskCreatedChan := make(chan *avssub.ContractavsserviceTaskCreated)
+	sub := service.exocoreSub.SubscribeToNewTasks(newTaskCreatedChan)
+	i := 1
+	for {
+		log.Println(i)
+		i++
+		select {
+		case <-context.Background().Done():
+			log.Println("done")
+		case err := <-sub.Err():
+			log.Println("Error in websocket subscription", "err", err)
+			sub.Unsubscribe()
+			sub = service.exocoreSub.SubscribeToNewTasks(newTaskCreatedChan)
+		case newTaskCreatedLog := <-newTaskCreatedChan:
+			log.Println("newTaskCreatedChan：", newTaskCreatedLog)
+		}
+	}
+}
+func GoroutineForCreateTask(wg *sync.WaitGroup, addr common.Address) {
+	defer wg.Done()
+	log.Println("GoroutineForCreateTask")
+	service, err := NewExoClientService(addr)
+	service.exocoreWriter.CreateNewTask(
+		context.Background(),
+		"hello-world",
+		uint64(5),
+		uint64(5),
+		uint64(90),
+		uint64(5),
+	)
+	log.Println(err)
+}
+
+// Simultaneously enable two Goroutines to execute different tasks, achieving concurrent execution
+var wg sync.WaitGroup
+
+func TestRunSubTask(t *testing.T) {
+	avsAddr, _, _ := DeployAVS()
+	//The successful execution of the transaction for deploying the contract
+	//and packaging it into the block requires waiting for a moment
+	time.Sleep(5 * time.Second)
+	log.Println("avs###" + avsAddr.String())
+	service, _ := NewExoClientService(avsAddr)
+	log.Println(service.ethClient.ChainID(context.Background()))
+	avsName, epochIdentifier := "avsTest", "hour"
+	avsOwnerAddress := []string{"exo13h6xg79g82e2g2vhjwg7j4r2z2hlncelwutkjr", "exo1sc9kjykz6qehauzmhjympsktdjaw4d99dksgrk"}
+	assetIds := []string{"0xdac17f958d2ee523a2206206994597c13d831ec7_0x65"}
+	minStakeAmount, avsUnbondingPeriod, minSelfDelegation := 3, 3, 5
+	params := []uint64{5, 7, 8, 4}
+	_, _ = service.exocoreWriter.RegisterAVSToExocore(context.Background(),
+		avsName,
+		uint64(minStakeAmount),
+		avsAddr,
+		gethcommon.HexToAddress("0x92D203486fc326Eaad87f3B876b3A5a7db245F3c"),
+		gethcommon.HexToAddress("0x92D203486fc326Eaad87f3B876b3A5a7db245F3c"),
+		avsOwnerAddress,
+		assetIds,
+		uint64(avsUnbondingPeriod),
+		uint64(minSelfDelegation),
+		epochIdentifier,
+		params,
+	)
+	log.Println("RegisterAVSToExocore")
+	time.Sleep(15 * time.Second)
+
+	wg.Add(2)
+
+	// Start Goroutine to execute Task 1
+	go GoroutineForSub(&wg, avsAddr)
+
+	// Start Goroutine to execute Task 2
+	go GoroutineForCreateTask(&wg, avsAddr)
+
+	// Waiting for all Goroutines to complete
+	wg.Wait()
+
+	fmt.Println("All tasks completed.")
 }
 
 func TestGetCode(t *testing.T) {
