@@ -1,37 +1,79 @@
 #!/bin/bash
 
-# Clean up previous compilation results
-rm -rf out
-mkdir -p out/binding
+function create_binding {
+    contract_dir=$1
+    contract=$2
+    binding_dir=$3
+    echo "Generating bindings for $contract"
 
-# Traverse all subdirectories in the "pre" folder
-for dir in ./contracts/src/v2/; do
-    # Extract the directory name (excluding the path)
-    dirname=$(basename "$dir")
+    # Create the directory for the Go bindings
+    mkdir -p "$binding_dir/${contract}"
 
-    # Create the corresponding "out" folder
-    mkdir -p "out/$dirname"
+    # Paths to the Solidity file and output directory
+    file="$contract_dir/src/v3/${contract}.sol"
+    dirname=$(basename "$contract" .sol)
+    output_dir="out/$dirname"
 
-    # Traverse all .sol files in the current directory
-    for file in "$dir"*.sol; do
-        # Extract the file name (excluding the path and extension)
-        filename=$(basename "$file" .sol)
+    # Ensure output directory exists
+    mkdir -p "$output_dir"
 
-        # Compile the contract
-        solc --bin --abi --optimize --overwrite -o "out/$dirname" "$file"
-        echo "Compiled ${dirname}/${filename}.sol"
-    done
+    # Check if the Solidity file exists
+    if [ ! -f "$file" ]; then
+        echo "Error: $file not found."
+        return
+    fi
 
-    # Generate the binding.go file using abigen
-    binding_dir="out/$dirname"
+    # Debugging output
+    echo "Compiling $file to $output_dir"
 
-    # Find the .bin .abi file in the $binding_dir directory
-    bin_file=$(find "$binding_dir" -maxdepth 1 -type f -name '*.bin' -exec basename {} \;)
-    abi_file=$(find "$binding_dir" -maxdepth 1 -type f -name '*.abi' -exec basename {} \;)
-    # Generate the binding.go file using abigen
-    abigen --bin="$binding_dir/$bin_file" --abi="$binding_dir/$abi_file" --pkg="contract$dirname" --out="out/$dirname/binding.go"
+    # Compile the contract using solc
+    solc --bin --abi --optimize --overwrite -o "$output_dir" "$file"
+    if [ $? -ne 0 ]; then
+        echo "Compilation failed for $file"
+        return
+    fi
+    echo "Compiled ${dirname}/${contract}.sol"
 
-    echo "Generated binding for ${dirname}"
+    # Read the ABI and bytecode
+    solc_abi="$output_dir/${contract}.abi"
+    solc_bin="$output_dir/${contract}.bin"
+
+    if [ ! -f "$solc_abi" ] || [ ! -f "$solc_bin" ]; then
+        echo "Error: $solc_abi or $solc_bin not found after compilation."
+        return
+    fi
+
+    # Check if ABI file is valid JSON
+    if ! jq . "$solc_abi" > /dev/null 2>&1; then
+        echo "Error: ABI file $solc_abi is not valid JSON."
+        return
+    fi
+
+    # Check if binary file exists and is not empty
+    if [ ! -s "$solc_bin" ]; then
+        echo "Error: Binary file $solc_bin is empty."
+        return
+    fi
+
+    # Create temporary files to store ABI and bytecode
+    mkdir -p data
+    cp "$solc_abi" data/tmp.abi
+    cp "$solc_bin" data/tmp.bin
+
+    # Generate Go bindings using abigen
+    rm -f "$binding_dir/${contract}/binding.go"
+    abigen --bin=data/tmp.bin --abi=data/tmp.abi --pkg=contract${contract} --out="$binding_dir/${contract}/binding.go"
+
+    # Clean up temporary files
+    rm -rf data/tmp.abi data/tmp.bin
+}
+
+# Clean up previous bindings
+rm -rf bindings/*
+
+# List of contracts to compile and generate bindings for
+avs_service_contracts="AvsServiceContract AVSTask"
+
+for contract in $avs_service_contracts; do
+    create_binding . "$contract" ./bindings
 done
-
-echo "Compilation and binding generation completed!"
