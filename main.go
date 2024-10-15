@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	key "github.com/ExocoreNetwork/exocore-sdk/cmd/exokey/generate"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -22,7 +23,7 @@ const (
 )
 
 func main() {
-
+	key.ImportKeyToFile("d196dca836f8ac2fff45b3c9f0113825ccbb33fa1b39737b948503b263ed75ae")
 	ecdsaKeyPassword, _ := os.LookupEnv("OPERATOR_ECDSA_KEY_PASSWORD")
 
 	currentDir, err := os.Getwd()

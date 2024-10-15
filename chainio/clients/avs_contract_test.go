@@ -260,7 +260,7 @@ func TestRunCreateTask(t *testing.T) {
 }
 
 func TestRegisterAVSByAddr(t *testing.T) {
-	service, _ := NewExoClientService(common.HexToAddress("0xE0B9B42720cD4da7ca273273860702b032509118"))
+	service, _ := NewExoClientService(common.HexToAddress("0xDF907c29719154eb9872f021d21CAE6E5025d7aB"))
 	log.Println(service.ethClient.ChainID(context.Background()))
 	avsName, epochIdentifier := "avsTest", "hour"
 	avsOwnerAddress := []string{"exo18cggcpvwspnd5c6ny8wrqxpffj5zmhklprtnph", "exo1sc9kjykz6qehauzmhjympsktdjaw4d99dksgrk"}
@@ -270,7 +270,7 @@ func TestRegisterAVSByAddr(t *testing.T) {
 	_, _ = service.exocoreWriter.RegisterAVSToExocore(context.Background(),
 		avsName,
 		uint64(minStakeAmount),
-		gethcommon.HexToAddress("0xE0B9B42720cD4da7ca273273860702b032509118"),
+		gethcommon.HexToAddress("0xDF907c29719154eb9872f021d21CAE6E5025d7aB"),
 		gethcommon.HexToAddress("0x92D203486fc326Eaad87f3B876b3A5a7db245F3c"),
 		gethcommon.HexToAddress("0x92D203486fc326Eaad87f3B876b3A5a7db245F3c"),
 		avsOwnerAddress,
@@ -298,7 +298,8 @@ func TestRunJustSub(t *testing.T) {
 			sub.Unsubscribe()
 			sub = service.exocoreSub.SubscribeToNewTasks(newTaskCreatedChan)
 		case newTaskCreatedLog := <-newTaskCreatedChan:
-			log.Println("newTaskCreatedChan：", newTaskCreatedLog)
+			log.Println("newTaskCreatedChan-name：", newTaskCreatedLog.Name)
+			log.Println("newTaskCreatedChan-id：", newTaskCreatedLog.TaskId)
 		}
 	}
 }
@@ -320,7 +321,9 @@ func GoroutineForSub(wg *sync.WaitGroup, addr common.Address) {
 			sub.Unsubscribe()
 			sub = service.exocoreSub.SubscribeToNewTasks(newTaskCreatedChan)
 		case newTaskCreatedLog := <-newTaskCreatedChan:
-			log.Println("newTaskCreatedChan：", newTaskCreatedLog)
+			log.Println("newTaskCreatedChan-name：", newTaskCreatedLog.Name)
+			log.Println("newTaskCreatedChan-id：", newTaskCreatedLog.TaskId)
+
 		}
 	}
 }

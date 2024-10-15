@@ -1,9 +1,8 @@
 package types
 
 import (
+	"github.com/prysmaticlabs/prysm/v4/crypto/bls/blst"
 	"log/slog"
-
-	"github.com/ExocoreNetwork/exocore-sdk/crypto/bls"
 )
 
 type TaskIndex = uint32
@@ -14,8 +13,7 @@ type TaskResponseHashFunction func(taskResponse TaskResponse) (TaskResponseDiges
 
 type SignedTaskResponseDigest struct {
 	TaskResponse                TaskResponse
-	BlsSignature                *bls.Signature
-	OperatorId                  OperatorId
+	BlsSignature                blst.Signature
 	SignatureVerificationErrorC chan error `json:"-"` // removed from json because channels are not marshallable
 }
 
@@ -23,6 +21,5 @@ func (strd SignedTaskResponseDigest) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("taskResponse", strd.TaskResponse),
 		slog.Any("blsSignature", strd.BlsSignature),
-		slog.Any("operatorId", strd.OperatorId),
 	)
 }
