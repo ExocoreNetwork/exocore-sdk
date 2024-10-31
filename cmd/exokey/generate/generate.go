@@ -336,7 +336,7 @@ func ReadPrivateKeyFromFile(path, password string) (blscommon.SecretKey, error) 
 	return key, nil
 }
 
-func ImportKeyToFile(privateKeyHex string) error {
+func ImportEcdsaKeyToFile(privateKeyHex, pw string) error {
 
 	key, err := crypto.HexToECDSA(privateKeyHex)
 	if err != nil {
@@ -353,12 +353,11 @@ func ImportKeyToFile(privateKeyHex string) error {
 		return err
 	}
 
-	fileName := "import"
+	fileName := "key.json"
 
-	id, _ := uuid.NewUUID()
-	folder := id.String()
-	_, err = os.Stat(folder)
-	if !os.IsNotExist(err) {
+	folder, err := os.Getwd()
+	if err != nil {
+		fmt.Println("Error getting current working directory:", err)
 		return err
 	}
 	// Clean the path
@@ -369,7 +368,7 @@ func ImportKeyToFile(privateKeyHex string) error {
 		return err
 	}
 
-	err = ecdsa.WriteKey(filepath.Clean(folder+"/"+DefaultKeyFolder+"/"+fileName), key, "1")
+	err = ecdsa.WriteKey(filepath.Clean(folder+"/"+DefaultKeyFolder+"/"+fileName), key, pw)
 	if err != nil {
 		return err
 	}
