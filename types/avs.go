@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/prysmaticlabs/prysm/v4/crypto/bls/blst"
+	"github.com/prysmaticlabs/prysm/v5/crypto/bls/blst"
 	"log/slog"
 )
 

@@ -4,7 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	csdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/evmos/evmos/v14/crypto/ethsecp256k1"
+	"github.com/evmos/evmos/v16/crypto/ethsecp256k1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

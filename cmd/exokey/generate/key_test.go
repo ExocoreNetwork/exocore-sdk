@@ -5,8 +5,10 @@ import (
 	"fmt"
 	sdkBls "github.com/ExocoreNetwork/exocore-sdk/crypto/bls"
 	sdkEcdsa "github.com/ExocoreNetwork/exocore-sdk/crypto/ecdsa"
+	"github.com/ethereum/go-ethereum/common"
+	"strings"
 
-	"github.com/prysmaticlabs/prysm/v4/crypto/bls/blst"
+	"github.com/prysmaticlabs/prysm/v5/crypto/bls/blst"
 	"os"
 	"path/filepath"
 	"testing"
@@ -70,4 +72,21 @@ func TestBlsKey(t *testing.T) {
 	}
 
 	fmt.Println("Test passed: Imported and read bls key successfully")
+}
+func TestHex(t *testing.T) {
+
+	//bytes := common.HexToAddress("0x3e108c058e8066da635321dc3018294ca82ddedf").Bytes()
+	//fmt.Println(bytes)
+
+	iteratorKey := []byte{62, 16, 140, 5, 142, 128, 102, 218, 99, 83, 33, 220, 48, 24, 41, 76, 168, 45, 222, 223}
+	avsAddr := common.BytesToAddress(iteratorKey).String()
+	fmt.Println(avsAddr)
+
+	a := "0x3e108c058e8066da635321dc3018294ca82ddedf"
+	b := "0x3e108c058e8066DA635321Dc3018294cA82ddEdf"
+	fmt.Println([]byte(a))
+	fmt.Println([]byte(b))
+
+	fmt.Println(strings.ToLower(strings.ToLower(strings.ToLower(strings.ToLower(b)))))
+
 }
